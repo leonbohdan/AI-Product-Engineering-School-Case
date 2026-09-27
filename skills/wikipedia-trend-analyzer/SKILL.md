@@ -20,9 +20,12 @@ description: >-
 
 ---
 
-## 2. Як викликати навичку через CLI
+## 2. Як викликати навичку: Два режими роботи
 
-Навичка запускається через єдиний уніфікований оркестратор [run.py](file:///home/bohdan/MyProjects/genesis-school/AI-Product-Engineering-School-Case/skills/wikipedia-trend-analyzer/run.py) з передачею прапорця `--json` для отримання структурованих числових аргументів.
+Навичка підтримує два взаємодоповнюючі режими запуску:
+
+### 2.1. Режим 1: Автономний CLI (БЕЗ моделей / Чистий Python)
+Прямий запуск детермінованого оркестратора [run.py](file:///home/bohdan/MyProjects/genesis-school/AI-Product-Engineering-School-Case/skills/wikipedia-trend-analyzer/run.py). Не потребує жодних LLM API ключів, працює за 1–2 секунди, гарантує 100% математичну точність і генерує повний набір артефактів (PNG + 1-сторінковий PDF):
 
 ```bash
 # Крос-мовне порівняння кількох ринків (2 роки, з генерацією графіка та 1-сторінкового PDF)
@@ -40,6 +43,20 @@ description: >-
   --years 2 \
   --pdf \
   --json
+```
+
+### 2.2. Режим 2: AI-агент з моделлю (OpenRouter Function Calling)
+Запуск через агентський модуль [openrouter_agent.py](file:///home/bohdan/MyProjects/genesis-school/AI-Product-Engineering-School-Case/skills/wikipedia-trend-analyzer/scripts/openrouter_agent.py), де мовна модель (наприклад `openrouter/free`, `google/gemma-4-31b-it:free` чи `anthropic/claude-3.5-haiku`) отримує природномовний запит, самостійно викликає навичку через Tool Calling, зчитує повернений компактний JSON і формує розгорнутий бізнес-звіт для фаундера:
+
+```bash
+# Запуск через безкоштовну модель (ключ автоматично читається з .env)
+.venv/bin/python3 skills/wikipedia-trend-analyzer/scripts/openrouter_agent.py \
+  --prompt "Фізика: порівняй зростання в DE, PL, UK за 2 роки" \
+  --model "openrouter/free"
+
+# Порівняльний бенчмарк 3 моделей одночасно
+.venv/bin/python3 skills/wikipedia-trend-analyzer/scripts/benchmark_models.py \
+  --prompt "Фізика: порівняй зростання в DE, PL, UK за 2 роки"
 ```
 
 ### Доступні аргументи CLI:

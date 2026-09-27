@@ -27,7 +27,9 @@ output/
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/
-*.swp
-*.swo
+# Environment secrets
+.env
+.env.*
+!.env.example
+
 
