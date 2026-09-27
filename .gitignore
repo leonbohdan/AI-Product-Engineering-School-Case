@@ -16,6 +16,8 @@ env/
 # Testing & Cache
 .pytest_cache/
 .coverage
+.cache/
+**/.cache/
 
 # Generated artifacts (keep examples, ignore local scratch outputs)
 output/
