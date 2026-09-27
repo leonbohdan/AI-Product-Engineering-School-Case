@@ -39,7 +39,8 @@
 │   │   ├── 0001-agent-skill-cli-architecture.md
 │   │   ├── 0002-cross-language-entity-resolution.md
 │   │   ├── 0003-trend-metrics-and-reliability-score.md
-│   │   └── 0004-pdf-report-generation-stack.md
+│   │   ├── 0004-pdf-report-generation-stack.md
+│   │   └── 0005-skill-specification-and-lightweight-llm-integration.md
 │   └── task/                      # Завдання, планування та вимоги кейсу
 │       ├── pes_task_1.md          # Вихідне формулювання завдання (першоджерело)
 │       ├── task.md                # Структурований опис завдання
@@ -53,7 +54,9 @@
 │       │   ├── topic_resolver.py    # Крос-мовний резолв тем через Wikidata та OpenSearch
 │       │   ├── trend_analyzer.py    # Розрахунок YoY, MoM, IQR-спайків, Reliability Score
 │       │   ├── chart_generator.py   # Побудова наочних графіків тренду (300 DPI PNG)
-│       │   └── pdf_generator.py     # Компіляція 1-сторінкового A4 PDF-звіту (ReportLab)
+│       │   ├── pdf_generator.py     # Компіляція 1-сторінкового A4 PDF-звіту (ReportLab)
+│       │   ├── openrouter_agent.py  # Агентський раннер з OpenRouter Tool Calling loop
+│       │   └── benchmark_models.py  # Порівняльний бенчмарк моделей OpenRouter
 │       ├── tests/                 # Модульні та E2E тести (pytest)
 │       ├── requirements.txt       # Відтворювані залежності
 │       └── examples/              # Приклади сформованих звітів і графіків

@@ -35,6 +35,7 @@ from urllib3.util.retry import Retry
 
 # Налаштування логування
 logger = logging.getLogger("wikimedia_client")
+logger.propagate = False
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))

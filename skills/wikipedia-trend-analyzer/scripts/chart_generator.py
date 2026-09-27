@@ -38,6 +38,7 @@ from trend_analyzer import (
 from wikimedia_client import WikimediaClient
 
 logger = logging.getLogger("chart_generator")
+logger.propagate = False
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))

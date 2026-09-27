@@ -170,3 +170,24 @@ class TestE2ECases:
         assert result["status"] == "success"
         assert result["metrics"]["total_views"] > 5000
         assert result["reliability"]["score"] > 50.0
+
+    def test_case_language_learning_audiences(self, orchestrator: SkillOrchestrator):
+        """
+        Сценарій 3 кейсу: Порівняння інтересу до вивчення англійської у вибраних мовних розділах
+        (de, pl, uk) для вибору цільових аудиторій під запуск застосунку.
+        """
+        result = orchestrator.run_multi(
+            topic="English language",
+            langs=["de", "pl", "uk"],
+            years=2,
+            generate_pdf=True,
+            generate_chart=True,
+        )
+
+        assert result["status"] == "success"
+        assert result["mode"] == "cross_lingual_comparison"
+        assert set(result["languages_analyzed"]) == {"de", "pl", "uk"}
+        assert result["comparison"]["top_market_by_volume"] in {"de", "pl", "uk"}
+        assert len(result["comparison"]["volume_shares_percent"]) == 3
+        assert os.path.exists(result["artifacts"]["chart_png"])
+        assert os.path.exists(result["artifacts"]["report_pdf"])

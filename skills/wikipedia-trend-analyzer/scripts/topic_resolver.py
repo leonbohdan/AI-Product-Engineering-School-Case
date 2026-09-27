@@ -29,6 +29,7 @@ from urllib3.util.retry import Retry
 
 # Налаштування логування
 logger = logging.getLogger("topic_resolver")
+logger.propagate = False
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))

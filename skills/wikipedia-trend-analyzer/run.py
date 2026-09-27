@@ -39,6 +39,7 @@ from wikimedia_client import WikimediaClient
 
 # Логування в stderr, щоб stdout залишався чистим для JSON-контракту агента
 logger = logging.getLogger("orchestrator")
+logger.propagate = False
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
@@ -72,15 +73,15 @@ class SkillOrchestrator:
         project = WikimediaClient.normalize_project(project)
         analysis = self.analyzer.analyze_article(project=project, article=article, years=years)
 
-        pv = self.client.get_article_pageviews(project=project, article=article, years=years)
-        df = pv.to_dataframe()
+        df = analysis.df if analysis.df is not None else self.client.get_article_pageviews(project=project, article=article, years=years).to_dataframe()
 
         chart_path_str: Optional[str] = None
         pdf_path_str: Optional[str] = None
 
         if generate_chart or generate_pdf:
             chart_file = self.chart_gen.generate_single_article_chart(analysis, df)
-            chart_path_str = str(chart_file)
+            if generate_chart:
+                chart_path_str = str(chart_file)
 
             if generate_pdf:
                 pdf_file = self.pdf_gen.generate_single_report(analysis, chart_file)
@@ -109,20 +110,24 @@ class SkillOrchestrator:
             overrides=overrides,
         )
 
-        dfs: Dict[str, Any] = {}
+        dfs: Dict[str, Any] = {
+            lang: res.df for lang, res in multi_res.results.items() if res.df is not None
+        }
         for lang, res in multi_res.results.items():
-            try:
-                pv = self.client.get_article_pageviews(res.project, res.article, years=years)
-                dfs[lang] = pv.to_dataframe()
-            except Exception as e:
-                logger.warning(f"Не вдалося завантажити DataFrame для {lang}: {e}")
+            if lang not in dfs:
+                try:
+                    pv = self.client.get_article_pageviews(res.project, res.article, years=years)
+                    dfs[lang] = pv.to_dataframe()
+                except Exception as e:
+                    logger.warning(f"Не вдалося завантажити DataFrame для {lang}: {e}")
 
         chart_path_str: Optional[str] = None
         pdf_path_str: Optional[str] = None
 
         if (generate_chart or generate_pdf) and dfs:
             chart_file = self.chart_gen.generate_multi_language_chart(multi_res, dfs)
-            chart_path_str = str(chart_file)
+            if generate_chart:
+                chart_path_str = str(chart_file)
 
             if generate_pdf:
                 pdf_file = self.pdf_gen.generate_multi_report(multi_res, chart_file)

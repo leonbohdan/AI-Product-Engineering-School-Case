@@ -37,8 +37,13 @@ from openrouter_agent import (
     load_env_file,
 )
 
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger("benchmark")
+logger.propagate = False
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 # Автоматичне завантаження .env при старті
 load_env_file()

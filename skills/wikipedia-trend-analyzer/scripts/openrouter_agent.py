@@ -33,8 +33,13 @@ for p in [str(BASE_DIR), str(SCRIPTS_DIR)]:
 
 from run import SkillOrchestrator
 
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger("openrouter_agent")
+logger.propagate = False
+if not logger.handlers:
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
 
 
 def load_env_file() -> None:
@@ -204,7 +209,7 @@ class OpenRouterAgent:
         return self._call_openrouter_api(user_prompt)
 
     def _call_openrouter_api(self, user_prompt: str) -> str:
-        """Реальний виклик OpenRouter API."""
+        """Реальний виклик OpenRouter API з підтримкою паралельних та послідовних викликів інструментів."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -217,76 +222,73 @@ class OpenRouterAgent:
             {"role": "user", "content": user_prompt},
         ]
 
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "tools": [TOOL_DEFINITION],
-            "tool_choice": "auto",
-        }
+        max_turns = 5
+        turn = 0
+        total_tok = 0
+        p_tok = 0
+        c_tok = 0
 
-        logger.info(f"Відправка запиту до OpenRouter (модель: {self.model})...")
-        req = urllib.request.Request(self.api_url, data=json.dumps(payload).encode("utf-8"), headers=headers)
-
-        try:
-            with urllib.request.urlopen(req) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            err_msg = e.read().decode("utf-8")
-            logger.error(f"Помилка OpenRouter API: HTTP {e.code}: {err_msg}")
-            return f"Помилка OpenRouter API: {err_msg}"
-
-        choice = data["choices"][0]["message"]
-
-        # Якщо модель вирішила викликати інструмент
-        if "tool_calls" in choice and choice["tool_calls"]:
-            tool_call = choice["tool_calls"][0]
-            call_id = tool_call["id"]
-            fn_name = tool_call["function"]["name"]
-            fn_args = json.loads(tool_call["function"]["arguments"])
-
-            # Виконуємо локальну навичку
-            tool_result = self.execute_tool(fn_name, fn_args)
-
-            # Додаємо виклик і результат у контекст діалогу
-            messages.append(choice)
-            messages.append({
-                "role": "tool",
-                "tool_call_id": call_id,
-                "name": fn_name,
-                "content": json.dumps(tool_result, ensure_ascii=False),
-            })
-
-            # Фінальний запит до моделі для генерації аналітичної відповіді
-            second_payload = {
+        while turn < max_turns:
+            turn += 1
+            payload = {
                 "model": self.model,
                 "messages": messages,
+                "tools": [TOOL_DEFINITION],
+                "tool_choice": "auto",
             }
-            logger.info("Генерація фінального звіту моделлю...")
-            req2 = urllib.request.Request(self.api_url, data=json.dumps(second_payload).encode("utf-8"), headers=headers)
-            with urllib.request.urlopen(req2) as resp2:
-                final_data = json.loads(resp2.read().decode("utf-8"))
 
-            usage_1 = data.get("usage", {})
-            usage_2 = final_data.get("usage", {})
-            total_tok = usage_1.get("total_tokens", 0) + usage_2.get("total_tokens", 0)
-            p_tok = usage_1.get("prompt_tokens", 0) + usage_2.get("prompt_tokens", 0)
-            c_tok = usage_1.get("completion_tokens", 0) + usage_2.get("completion_tokens", 0)
+            logger.info(f"Відправка запиту до OpenRouter (модель: {self.model}, крок {turn})...")
+            req = urllib.request.Request(self.api_url, data=json.dumps(payload).encode("utf-8"), headers=headers)
 
-            final_text = final_data["choices"][0]["message"]["content"]
-            header = (
-                f"\n{'=' * 80}\n"
-                f"🤖 ВІДПОВІДЬ ЗГЕНЕРОВАНО МОДЕЛЛЮ: {self.model}\n"
-                f"📊 Статистика: всього токенів: {total_tok} (Prompt: {p_tok}, Completion: {c_tok})\n"
-                f"{'=' * 80}\n\n"
-            )
-            return header + final_text
-        else:
-            header = (
-                f"\n{'=' * 80}\n"
-                f"🤖 ВІДПОВІДЬ ЗГЕНЕРОВАНО МОДЕЛЛЮ: {self.model}\n"
-                f"{'=' * 80}\n\n"
-            )
-            return header + choice.get("content", "Немає відповіді від моделі.")
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+            except urllib.error.HTTPError as e:
+                err_msg = e.read().decode("utf-8")
+                logger.error(f"Помилка OpenRouter API: HTTP {e.code}: {err_msg}")
+                return f"Помилка OpenRouter API: {err_msg}"
+
+            usage = data.get("usage", {})
+            total_tok += usage.get("total_tokens", 0)
+            p_tok += usage.get("prompt_tokens", 0)
+            c_tok += usage.get("completion_tokens", 0)
+
+            choice = data["choices"][0]["message"]
+            messages.append(choice)
+
+            tool_calls = choice.get("tool_calls")
+            if not tool_calls:
+                # Модель сформувала фінальну текстову відповідь
+                final_text = choice.get("content", "Немає відповіді від моделі.")
+                header = (
+                    f"\n{'=' * 80}\n"
+                    f"🤖 ВІДПОВІДЬ ЗГЕНЕРОВАНО МОДЕЛЛЮ: {self.model}\n"
+                    f"📊 Статистика: всього токенів: {total_tok} (Prompt: {p_tok}, Completion: {c_tok})\n"
+                    f"{'=' * 80}\n\n"
+                )
+                return header + final_text
+
+            # Обробка та послідовне виконання всіх викликів інструментів поточної ітерації
+            logger.info(f"Модель ініціювала {len(tool_calls)} виклик(ів) інструментів:")
+            for tc in tool_calls:
+                call_id = tc.get("id") or f"call_{turn}_{len(messages)}"
+                fn_name = tc.get("function", {}).get("name", "")
+                raw_args = tc.get("function", {}).get("arguments", "{}")
+                try:
+                    fn_args = json.loads(raw_args) if isinstance(raw_args, str) else raw_args
+                except Exception as e:
+                    logger.warning(f"Помилка парсингу аргументів інструменту {raw_args}: {e}")
+                    fn_args = {}
+
+                tool_result = self.execute_tool(fn_name, fn_args)
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": call_id,
+                    "name": fn_name,
+                    "content": json.dumps(tool_result, ensure_ascii=False),
+                })
+
+        return "Досягнуто ліміт ітерацій виклику інструментів (max_turns=5)."
 
     def _simulate_agent_flow(self, user_prompt: str) -> str:
         """
@@ -298,11 +300,17 @@ class OpenRouterAgent:
         logger.info("OPENROUTER_API_KEY не знайдено. Запуск демонстраційної емуляції агента.")
 
         lower = user_prompt.lower()
-        if "фізик" in lower:
+        if "астроном" in lower or "astronom" in lower:
+            args = {"article": "Астрономія", "project": "uk.wikipedia", "years": 2}
+        elif "англ" in lower or "english" in lower:
+            args = {"topic": "English language", "langs": "de,pl,cs,uk,es", "years": 2}
+        elif "голодуван" in lower or "fasting" in lower:
+            args = {"topic": "інтервальне голодування", "langs": "pl,cs", "years": 2, "override": "pl:Głodówka_lecznicza"}
+        elif "фізик" in lower or "physic" in lower:
             args = {"topic": "Фізика", "langs": "de,pl,uk", "years": 2}
-        elif "математ" in lower:
+        elif "математ" in lower or "math" in lower:
             args = {"article": "Mathematik", "project": "de.wikipedia", "years": 2}
-        elif "християн" in lower:
+        elif "християн" in lower or "christian" in lower:
             args = {"topic": "Християнство", "langs": "en,de,fr,uk,pl,es,it", "years": 2}
         else:
             args = {"topic": "інтервальне голодування", "langs": "pl,cs", "years": 2}

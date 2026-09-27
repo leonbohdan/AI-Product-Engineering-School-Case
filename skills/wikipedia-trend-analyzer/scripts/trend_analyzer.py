@@ -37,6 +37,7 @@ from topic_resolver import TopicResolver, parse_override_arg
 from wikimedia_client import PageViewsResult, WikimediaClient
 
 logger = logging.getLogger("trend_analyzer")
+logger.propagate = False
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
@@ -155,6 +156,7 @@ class TrendAnalysisResult:
     growth: GrowthMetrics
     spikes: SpikeMetrics
     reliability: ReliabilityBreakdown
+    df: Optional[Any] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -347,6 +349,7 @@ class TrendAnalyzer:
             growth=growth_metrics,
             spikes=spikes_metrics,
             reliability=reliability,
+            df=df,
         )
 
     # -------------------------------------------------------------------------
