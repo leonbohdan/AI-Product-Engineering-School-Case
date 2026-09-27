@@ -46,14 +46,16 @@
 │       └── plan.md                # Детальний аналіз та покроковий план реалізації
 ├── skills/
 │   └── wikipedia-trend-analyzer/  # Реалізація навички аналізу трендів Wikipedia
-│       ├── SKILL.md               # Системний опис навички для LLM-агента
-│       ├── run.py                 # CLI-оркестратор для виклику агентом
-│       ├── scripts/               # Виконуваний код навички (інструменти)
-│       │   ├── fetch_views.py     # Збір статистики через Wikimedia API
-│       │   ├── analyze.py         # Аналіз динаміки, розрахунок метрик та надійності
-│       │   ├── chart_generator.py # Побудова чартів і збереження графіків (PNG)
-│       │   └── generate_pdf.py    # Рендеринг 1-сторінкового PDF-звіту
-│       ├── requirements.txt       # Залежності середовища
+│       ├── SKILL.md               # Системний опис навички для LLM-агента (Agent Skills spec)
+│       ├── run.py                 # Головний CLI-оркестратор (єдина точка входу)
+│       ├── scripts/               # Модульний виконуваний код навички
+│       │   ├── wikimedia_client.py  # Клієнт Wikimedia REST API (фільтрація ботів agent=user)
+│       │   ├── topic_resolver.py    # Крос-мовний резолв тем через Wikidata та OpenSearch
+│       │   ├── trend_analyzer.py    # Розрахунок YoY, MoM, IQR-спайків, Reliability Score
+│       │   ├── chart_generator.py   # Побудова наочних графіків тренду (300 DPI PNG)
+│       │   └── pdf_generator.py     # Компіляція 1-сторінкового A4 PDF-звіту (ReportLab)
+│       ├── tests/                 # Модульні та E2E тести (pytest)
+│       ├── requirements.txt       # Відтворювані залежності
 │       └── examples/              # Приклади сформованих звітів і графіків
 ```
 
@@ -156,19 +158,21 @@ flowchart LR
 - [ADR-0002: Стратегія крос-мовного зіставлення тем через Wikidata](./docs/adr/0002-cross-language-entity-resolution.md)
 - [ADR-0003: Алгоритм аналізу трендів, фільтрація спалахів та Reliability Score](./docs/adr/0003-trend-metrics-and-reliability-score.md)
 - [ADR-0004: Стек візуалізації та генерації 1-сторінкового PDF (ReportLab)](./docs/adr/0004-pdf-report-generation-stack.md)
+- [ADR-0005: Стандартизація Agent Skill та оптимізація для швидких моделей (Claude Haiku 4.5)](./docs/adr/0005-skill-specification-and-lightweight-llm-integration.md)
 
 ---
 
 ## 🚀 План реалізації (Roadmap)
 
-- [x] **Аналіз та формалізація завдання** (`skills/task.md`, `skills/plan.md`).
+- [x] **Аналіз та формалізація завдання** (`docs/task/task.md`, `docs/task/plan.md`).
 - [x] **Опис проєкту та проєктування архітектури** (`README.md`).
 - [x] **Фіксація архітектурних рішень (ADRs)** (`docs/adr/`).
-- [ ] **Модуль збору даних:** інтеграція з Wikimedia Pageviews API, кешування та валідація відповідей.
-- [ ] **Аналітичний модуль:** алгоритм оцінки зростання, стабільності та довіри до тренду.
-- [ ] **Модуль звітності:** побудова графіків (matplotlib) та експорт односторінкового PDF (ReportLab).
-- [ ] **Специфікація `SKILL.md`:** чіткий системний промпт для моделі з детальними прикладами виклику інструментів.
-- [ ] **E2E тестування:** валідація сценаріїв на моделях Claude Haiku / GPT-4o-mini через OpenRouter.
+- [x] **Модуль збору даних:** інтеграція з Wikimedia Pageviews API, кешування та обов'язкова фільтрація ботів `agent=user` (`wikimedia_client.py`).
+- [x] **Крос-мовний резолвер тем:** автоматичний пошук назв статей через Wikidata API та OpenSearch (`topic_resolver.py`).
+- [x] **Аналітичний модуль:** розрахунок YoY/MoM, детекція новинних сплесків через IQR та композитний індекс довіри `Reliability Score` (`trend_analyzer.py`).
+- [x] **Модуль візуалізації та PDF:** побудова графіків тренду в 300 DPI PNG (`chart_generator.py`) та компіляція строго односторінкового PDF-звіту з автоматичним PNG-прев'ю (`pdf_generator.py`).
+- [x] **CLI-оркестратор та специфікація `SKILL.md`:** єдина точка входу `run.py`, контракт JSON-відповідей, промпт-керівництво для LLM та дорожня карта масштабування на великі дані (`SKILL.md`).
+- [ ] **E2E валідація та тестування:** перевірка 3 базових бізнес-сценаріїв (`tests/test_cases.py`) та валідація на моделях Claude Haiku / OpenRouter.
 
 ---
 

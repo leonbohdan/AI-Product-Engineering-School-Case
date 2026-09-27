@@ -14,6 +14,7 @@
 | [ADR-0002](./0002-cross-language-entity-resolution.md) | **Стратегія крос-мовного зіставлення тем (Cross-lingual Entity Resolution)** | `Accepted` | 2026-09-26 |
 | [ADR-0003](./0003-trend-metrics-and-reliability-score.md) | **Алгоритм аналізу трендів: фільтрація новинних спалахів та метрика довіри (Reliability Score)** | `Accepted` | 2026-09-26 |
 | [ADR-0004](./0004-pdf-report-generation-stack.md) | **Стек візуалізації та генерації односторінкового PDF-звіту** | `Accepted` | 2026-09-26 |
+| [ADR-0005](./0005-skill-specification-and-lightweight-llm-integration.md) | **Стандартизація Agent Skill та оптимізація для швидких моделей (Claude Haiku 4.5)** | `Accepted` | 2026-09-27 |
 
 ---
 
