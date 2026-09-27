@@ -1,5 +1,7 @@
 """Wikipedia Trend Analyzer scripts package."""
 
+from .chart_generator import ChartGenerator
+from .pdf_generator import PDFReportGenerator
 from .topic_resolver import (
     ResolvedArticle,
     TopicResolutionResult,
@@ -27,9 +29,11 @@ from .wikimedia_client import (
 
 __all__ = [
     "ArticleNotFoundError",
+    "ChartGenerator",
     "DailyPageView",
     "GrowthMetrics",
     "MultiLanguageComparisonResult",
+    "PDFReportGenerator",
     "PageViewsResult",
     "RateLimitError",
     "ReliabilityBreakdown",
