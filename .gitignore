@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+.cache/
+**/.cache/
+
+# Generated artifacts (keep examples, ignore local scratch outputs)
+output/
+!examples/
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.idea/
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+
